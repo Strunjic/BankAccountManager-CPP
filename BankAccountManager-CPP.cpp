@@ -12,6 +12,14 @@
 using namespace std;
 
 const double MIN_BALANCE_FOR_NEGATIVE = 10000.00;
+const int MIN_PIN_NUMBER = 0;
+const int MAX_PIN_NUMBER = 9999;
+const int MIN_NAME_LENGTH = 4;
+const int MAX_NAME_LENGTH = 15;
+const int MAX_ATTEMPTS = 3;
+const double MAX_BALANCE = 1000000;
+const double MAX_NEGATIVE_BALANCE = -1000000;
+const double START_BALANCE = 1000.00;
 
 string getMaskedPin(const string& text) {
     cout << text;
@@ -70,7 +78,7 @@ private:
     int attempt = 0;
     string hashed_pin;
     bool logged = false;
-    double balance = 1000.00;
+    double balance = START_BALANCE;
     bool negative = false;
 
     static string hashPin(int pin) {
@@ -154,6 +162,10 @@ public:
             cout << "You can`t deposit negative money";
             return;
         }
+        else if (amount + this->balance > MAX_BALANCE) {
+            cout << "You can`t deposit that much money, maximum balance is " << MAX_BALANCE << "$\n";
+			return;
+        }
         this->balance += amount;
         cout << "You successfully deposited " << amount << "$\n";
     }
@@ -166,6 +178,10 @@ public:
             cout << "You can`t withdraw negative money";
             return;
         }
+        if(this->balance - amount < MAX_NEGATIVE_BALANCE) {
+            cout << "You can`t withdraw that much money, maximum negative balance is " << MAX_NEGATIVE_BALANCE << "$\n";
+            return;
+		}
         if (negative) {
             balance -= amount;
             cout << "You successfully withdraw " << amount << "$\n";
@@ -221,7 +237,7 @@ public:
         spin = getMaskedPin("Please enter your pin (0-9999):");
         tpin = stoi(spin);
 
-        if (tpin < 0 || tpin > 9999) {
+        if (tpin < MIN_PIN_NUMBER || tpin > MAX_PIN_NUMBER) {
             cout << "You need to enter pin that is minimu number 0 or maximum number 9999, please try again\n";
             return;
         }
@@ -323,7 +339,7 @@ public:
         this->currentAccount = -1;
     }
     void registerAccount(string name, int pin) {
-        if (name.size() > 15 || name.size() < 4) {
+        if (name.size() > MAX_NAME_LENGTH || name.size() < MIN_NAME_LENGTH) {
             cout << "You need to enter name with minimum 4 or maximum 15 characters, please try again\n";
             return;
         }
@@ -332,7 +348,7 @@ public:
             cout << "Name already taken, please try again\n";
             return;
         }
-        if (pin < 0 || pin > 9999) {
+        if (pin < MIN_PIN_NUMBER || pin > MAX_PIN_NUMBER) {
             cout << "You need to enter pin that is minimum number 0 or maximum number 9999, please try again\n";
             return;
         }
@@ -354,7 +370,7 @@ public:
         }
         currentAccount = this->names[name];
 
-        if (this->accounts[currentAccount].getAttempts() >= 3) {
+        if (this->accounts[currentAccount].getAttempts() >= MAX_ATTEMPTS) {
             cout << "This account is locked please try again another time\n";
             return false;
         }
