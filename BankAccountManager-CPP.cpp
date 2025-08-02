@@ -61,7 +61,7 @@ double getAmount(const string& text) {
 		}
     }
     cout << "\n";
-    if (input == "") return -1;
+    if (input == "") return 0;
     return stod(input);
 }
 
