@@ -34,6 +34,37 @@ string getMaskedPin(const string& text) {
     return input;
 }
 
+double getAmount(const string& text) {
+    cout << text;
+
+    string input;
+    char ch;
+	bool hasDecimal = false;
+    while ((ch = _getch()) != '\r') {
+        if(ch == '\b') {
+            if (!input.empty()) {
+                input.pop_back();
+                cout << "\b \b";
+            }
+        }
+        else if (isdigit(ch)) {
+            input.push_back(ch);
+            cout << ch;
+		}
+        else if (ch == '.' && !hasDecimal) {
+            input.push_back(ch);
+            cout << ch;
+            hasDecimal = true;
+        }
+        else if (ch == '.' && hasDecimal) {
+            continue;
+		}
+    }
+    cout << "\n";
+    if (input == "") return -1;
+    return stod(input);
+}
+
 class BankAccount {
 private:
     int attempt = 0;
@@ -152,7 +183,7 @@ public:
             cout << "You need to login first\n";
             return;
         }
-        cout << name << " balance is: " << (double)balance << "$\n";
+		printf("Yout balance is: %.2f$\n", balance);
     }
     void getNegative() {
         if (!this->logged) {
@@ -355,15 +386,15 @@ public:
             }
 
             if (temp == "deposit") {
-                int amount;
-                cin >> amount;
+                double amount;
+				amount = getAmount("Please enter amount to deposit: ");
                 this->getCurrent().deposit(amount);
                 continue;
             }
 
             if (temp == "withdraw") {
-                int amount;
-                cin >> amount;
+                double amount;
+				amount = getAmount("Please enter amount to withdraw: ");
                 this->getCurrent().withdraw(amount);
                 continue;
             }

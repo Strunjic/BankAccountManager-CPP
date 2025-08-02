@@ -1,1 +1,4 @@
-﻿  BankAccountManager-CPP.vcxproj -> C:\Users\Rale\source\repos\BankAccountManager-CPP\x64\Debug\BankAccountManager-CPP.exe
+﻿  BankAccountManager-CPP.cpp
+C:\Users\Rale\source\repos\BankAccountManager-CPP\BankAccountManager-CPP.cpp(278,26): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\Rale\source\repos\BankAccountManager-CPP\BankAccountManager-CPP.cpp(355,42): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+  BankAccountManager-CPP.vcxproj -> C:\Users\Rale\source\repos\BankAccountManager-CPP\x64\Debug\BankAccountManager-CPP.exe

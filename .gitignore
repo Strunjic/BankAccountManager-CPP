@@ -1,0 +1,12 @@
+# Visual Studio temporary files
+.vs/
+*/[Bb]in/
+*/[Oo]bj/
+*/[Dd]ebug/
+*/[Rr]elease/
+x64/
+x86/
+*.user
+*.sdf
+*.opensdf
+*.suo
