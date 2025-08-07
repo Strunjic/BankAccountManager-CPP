@@ -73,6 +73,45 @@ double getAmount(const string& text) {
     return stod(input);
 }
 
+string toLower(const string& str) {
+    string lowerStr = str;
+    for (char& c : lowerStr) {
+        c = tolower(c);
+    }
+    return lowerStr;
+}
+
+enum Command {
+    LOGIN,
+    REGISTER,
+    QUIT,
+    HELP,
+    DEPOSIT,
+    WITHDRAW,
+    BALANCE,
+    NEGATIVE_STATUS,
+    SET_NEGATIVE,
+    SET_PIN,
+    LOG_OFF,
+    UNKNOWN
+};
+
+Command parseCommand(const string& input) {
+    string command = toLower(input);
+    if (command == "login") return LOGIN;
+    if (command == "register") return REGISTER;
+    if (command == "quit") return QUIT;
+    if (command == "help") return HELP;
+    if (command == "deposit") return DEPOSIT;
+    if (command == "withdraw") return WITHDRAW;
+    if (command == "balance") return BALANCE;
+    if (command == "negative?") return NEGATIVE_STATUS;
+    if (command == "set_negative") return SET_NEGATIVE;
+    if (command == "set_pin") return SET_PIN;
+    if (command == "log_off") return LOG_OFF;
+    return UNKNOWN;
+}
+
 class BankAccount {
 private:
     int attempt = 0;
@@ -123,7 +162,7 @@ public:
         string s = name + "{" + this->hashed_pin
             + "{" + to_string(this->balance) + "{"
             + to_string(this->attempt) + "{"
-            + to_string(this->negative) + "{\n";
+            + to_string(this->negative) + "\n";
         return s;
     }
 
@@ -338,6 +377,7 @@ public:
     void log_off() {
         this->currentAccount = -1;
     }
+
     void registerAccount(string name, int pin) {
         if (name.size() > MAX_NAME_LENGTH || name.size() < MIN_NAME_LENGTH) {
             cout << "You need to enter name with minimum 4 or maximum 15 characters, please try again\n";
@@ -363,6 +403,7 @@ public:
 
         return;
     }
+
     bool loginSession(string name, int pin) {
         if (this->names.find(name) == names.end()) {
             cout << "This name does not exist, please try again\n";
@@ -384,57 +425,86 @@ public:
     }
 
     void runLoggedInSession() {
+        double amount;
         string temp;
         while (true) {
             cout << "Choose command, if need type help: ";
             cin >> temp;
+			temp = toLower(temp);
 
-            if (temp == "help") {
-                cout << "\n\n\n************************\n"
-                    << "log_off\ndeposit\nwithdraw\nbalance\nnegative?\nset_negative\nset_pin\n"
-                    << "************************\n";
-            }
+			Command command = parseCommand(temp);
 
-            if (temp == "log_off") {
-                this->getCurrent().log_off();
-                this->log_off();
-                break;
-            }
+            switch (command) {
+                case HELP:
+                    cout << "\n\n\n************************\n"
+                        << "log_off\ndeposit\nwithdraw\nbalance\nnegative?\nset_negative\nset_pin\n"
+                        << "************************\n";
+				    break;
 
-            if (temp == "deposit") {
-                double amount;
-				amount = getAmount("Please enter amount to deposit: ");
-                this->getCurrent().deposit(amount);
-                continue;
-            }
+                case LOG_OFF:
+                    this->getCurrent().log_off();
+                    this->log_off();
+                    return;
 
-            if (temp == "withdraw") {
-                double amount;
-				amount = getAmount("Please enter amount to withdraw: ");
-                this->getCurrent().withdraw(amount);
-                continue;
-            }
+                case DEPOSIT:
+                    amount = getAmount("Please enter amount to deposit: ");
+                    this->getCurrent().deposit(amount);
+                    break;
 
-            if (temp == "balance") {
-                this->getCurrent().getBalance();
-                continue;
-            }
+				case WITHDRAW:
+                    amount = getAmount("Please enter amount to withdraw: ");
+                    this->getCurrent().withdraw(amount);
+                    break;
 
-            if (temp == "negative?") {
-                this->getCurrent().getNegative();
-                continue;
-            }
+                case BALANCE:
+                    this->getCurrent().getBalance();
+                    break;
 
-            if (temp == "set_negative") {
-                this->getCurrent().setNegative();
-            }
+                case NEGATIVE_STATUS:
+                    this->getCurrent().getNegative();
+                    break;
 
-            if (temp == "set_pin") {
-                this->getCurrent().setPin();
+                case SET_NEGATIVE:
+                    this->getCurrent().setNegative();
+                    break;
+
+                case SET_PIN:
+                    this->getCurrent().setPin();
+                    break;
+
+				case UNKNOWN:
+                    cout << "Unknown command, please try again\n";
+					break;
             }
         }
     }
 };
+
+void registerAccount(Bank& bank) {
+    string tname, spin; int tpin;
+
+    cout << "Please enter your name (4-15 characters): ";
+    cin >> tname;
+
+    spin = getMaskedPin("Please enter your pin (0-9999):");
+    tpin = stoi(spin);
+
+    bank.registerAccount(tname, tpin);
+}
+
+void loginAccount(Bank& bank) {
+    string tname, spin; int tpin;
+
+    cout << "Please enter your name: ";
+    cin >> tname;
+
+    spin = getMaskedPin("Please enter your pin:");
+    tpin = stoi(spin);
+
+    if (bank.loginSession(tname, tpin)) {
+        bank.runLoggedInSession();
+    }
+}
 
 int main() {
     Bank bank;
@@ -446,40 +516,29 @@ int main() {
         cout << "\n*********************************\n";
         cin >> temp;
 
-        if (temp == "register") {
-            string tname, spin; int tpin;
+        temp = toLower(temp);
 
-            cout << "Please enter your name (4-15 characters): ";
-            cin >> tname;
+        Command command = parseCommand(temp);
 
-            spin = getMaskedPin("Please enter your pin (0-9999):");
-            tpin = stoi(spin);
+        switch (command) {
+            case REGISTER:
+                registerAccount(bank);
+                break;
 
-            bank.registerAccount(tname, tpin);
-            continue;
+            case LOGIN:
+				loginAccount(bank);
+                break;
+
+            case QUIT:
+                bank.saveToFile();
+                cout << "Thank you for using our bank, goodbye!\n";
+                return 0;
+
+            case UNKNOWN:
+                cout << "Unknown command, please try again\n";
+                break;
         }
-
-        else if (temp == "login") {
-            string tname, spin; int tpin;
-
-            cout << "Please enter your name: ";
-            cin >> tname;
-
-            spin = getMaskedPin("Please enter your pin:");
-            tpin = stoi(spin);
-
-            if (bank.loginSession(tname, tpin)) {
-                bank.runLoggedInSession();
-            }
-            continue;
-        }
-
-        else if (temp == "quit") break;
-
-        cout << "You entered wrong command\n";
     }
-
-    bank.saveToFile();
 
     return 0;
 }
