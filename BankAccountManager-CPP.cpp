@@ -93,6 +93,7 @@ enum Command {
     SET_NEGATIVE,
     SET_PIN,
     LOG_OFF,
+	TRANSFER,
     UNKNOWN
 };
 
@@ -109,6 +110,7 @@ Command parseCommand(const string& input) {
     if (command == "set_negative") return SET_NEGATIVE;
     if (command == "set_pin") return SET_PIN;
     if (command == "log_off") return LOG_OFF;
+	if (command == "transfer") return TRANSFER;
     return UNKNOWN;
 }
 
@@ -171,6 +173,7 @@ public:
         this->hashed_pin = hashPin(pin);
     }
     BankAccount() {}
+
     BankAccount(string name, string hashed_pin, double balance, int attempt, bool negative) {
         this->name = name;
         this->hashed_pin = hashed_pin;
@@ -188,10 +191,40 @@ public:
         cout << "Wrong pin\n";
         return false;
     }
+
     void log_off() {
         this->logged = false;
         cout << "You are out " << name << "\n";
     }
+
+    void transfer(BankAccount& other, double amount) {
+        if (!this->logged) {
+            cout << "You need to login first\n";
+			return;
+        }
+        if (amount < 0) {
+            cout << "You can`t transfer negative money\n";
+            return;
+		}
+        if (this->balance - amount < MAX_NEGATIVE_BALANCE) {
+			cout << "You can`t transfer that much money, maximum negative balance is " << MAX_NEGATIVE_BALANCE << "$\n";
+            return;
+        }
+        if(this->negative && this->balance - amount < 0) {
+            cout << "You can`t transfer that much money, you are in negative balance\n";
+            return;
+		}
+        if (other.balance + amount > MAX_BALANCE) {
+            cout << "You can`t transfer that much money, maximum balance is " << MAX_BALANCE << "$\n";
+            return;
+        }
+
+        this->balance -= amount;
+        other.balance += amount;
+
+        cout << "You successfully transferred " << amount << "$ to " << other.name << "\n";
+	}
+
     void deposit(double amount) {
         if (!this->logged) {
             cout << "You need to login first\n";
@@ -208,6 +241,7 @@ public:
         this->balance += amount;
         cout << "You successfully deposited " << amount << "$\n";
     }
+
     void withdraw(double amount) {
         if (!this->logged) {
             cout << "You need to login first\n";
@@ -233,6 +267,7 @@ public:
         }
         cout << "You can`t withdraw that much money :(\n";
     }
+
     void getBalance() {
         if (!this->logged) {
             cout << "You need to login first\n";
@@ -240,6 +275,7 @@ public:
         }
 		printf("Yout balance is: %.2f$\n", balance);
     }
+
     void getNegative() {
         if (!this->logged) {
             cout << "You need to login first\n";
@@ -247,6 +283,7 @@ public:
         }
         cout << this->negative << "\n";
     }
+
     void setNegative() {
         if (!this->logged) {
             cout << "You need to login first\n";
@@ -266,6 +303,7 @@ public:
         this->negative = true;
         cout << "You successfully changed the negative status\n";
     }
+
     void setPin() {
         if (!this->logged) {
             cout << "You need to login first\n";
@@ -303,6 +341,10 @@ private:
     unordered_map<string, size_t> names;
     int currentAccount = -1;
 public:
+    bool isAccountExists(const string& name) {
+        return names.find(name) != names.end();
+    }
+
     void saveToFile() {
         ofstream file("bank.txt", ios::out);
         if (file.is_open()) file.close();
@@ -426,7 +468,7 @@ public:
 
     void runLoggedInSession() {
         double amount;
-        string temp;
+        string temp, targetName;
         while (true) {
             cout << "Choose command, if need type help: ";
             cin >> temp;
@@ -437,7 +479,7 @@ public:
             switch (command) {
                 case HELP:
                     cout << "\n\n\n************************\n"
-                        << "log_off\ndeposit\nwithdraw\nbalance\nnegative?\nset_negative\nset_pin\n"
+                        << "log_off\ndeposit\nwithdraw\ntransfer\nbalance\nnegative?\nset_negative\nset_pin\n"
                         << "************************\n";
 				    break;
 
@@ -470,6 +512,17 @@ public:
 
                 case SET_PIN:
                     this->getCurrent().setPin();
+                    break;
+
+				case TRANSFER:
+					amount = getAmount("Please enter amount to transfer: ");
+					cout << "Please enter the name of the account you want to transfer to: ";
+                    cin >> targetName;
+                    if (!isAccountExists(targetName)) {
+						cout << "This account does not exist, please try again\n";
+						break;
+                    }
+                    this->getCurrent().transfer(accounts[names[targetName]], amount);
                     break;
 
 				case UNKNOWN:
