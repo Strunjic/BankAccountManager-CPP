@@ -10,7 +10,6 @@ A console-based banking system with secure PIN hashing and account management.
 - Deposit/withdraw functionality
 - Balance inquiry
 - Negative balance settings (with minimum balance requirement)
-- Account locking after 3 failed attempts
 - Persistent data storage
 - Transfer money between accounts
 
