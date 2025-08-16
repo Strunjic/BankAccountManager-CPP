@@ -34,7 +34,8 @@ CREATE TABLE Accounts (
 );
 
 ## Installation
-# Clone the repository
+
+### Clone the repository
 - git clone https://github.com/your-username/BankAccountManager-CPP.git
 
 ### Install dependencies
