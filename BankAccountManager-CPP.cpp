@@ -603,9 +603,25 @@ public:
                 }
 
                 amount = getBalance(this->db, this->currentId) - tempD;
+
+                if(amount < 0 && !getNegativeStatus(this->db, this->currentId)) {
+                    cout << "You can`t transfer money, negative balance is not allowed\n";
+                    break;
+				}
+
+				if (amount < MAX_NEGATIVE_BALANCE) {
+                    cout << "You can`t transfer that much money, maximum negative balance is " << MAX_NEGATIVE_BALANCE << "$\n";
+                    break;
+				}
+
                 updateBalance(this->db, this->currentId, amount);
 
 				amount = getBalance(this->db, tempI) + tempD;
+
+                if (amount > MAX_BALANCE) {
+					cout << "You can`t transfer that much money, maximum balance is " << MAX_BALANCE << "$\n";
+                }
+
 				updateBalance(this->db, tempI, amount);
                 
 				cout << "Transfer successful, you transferred " << tempD << "$ to " << targetName << "\n";
@@ -647,10 +663,6 @@ void loginAccount(Bank& bank) {
 
 int main() {
     sqlite3* db;
-    if (sqlite3_open("bank.db", &db) != SQLITE_OK) {
-        cerr << "Can't open database: " << sqlite3_errmsg(db) << endl;
-        return 0;
-    }
     int rc = sqlite3_open("bank.db", &db);
     if (rc) {
         cerr << "Can't open database: " << sqlite3_errmsg(db) << "\n";
