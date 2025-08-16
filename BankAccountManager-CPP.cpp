@@ -50,9 +50,9 @@ double getAmount(const string& text) {
     bool hasDecimal = false;
     while ((ch = _getch()) != '\r') {
         if (ch == '\b') {
-            if(input.back() == '.') {
+            if (input.back() == '.') {
                 hasDecimal = false;
-			}
+            }
             if (!input.empty()) {
                 input.pop_back();
                 cout << "\b \b";
@@ -97,6 +97,10 @@ enum Command {
     SET_PIN,
     LOG_OFF,
     TRANSFER,
+    UPDATE_PIN,
+    RESTORE_ATTEMPTS,
+    GET_ALL_INFO,
+    GET_ID,
     UNKNOWN
 };
 
@@ -114,10 +118,14 @@ Command parseCommand(const string& input) {
     if (command == "set_pin") return SET_PIN;
     if (command == "log_off") return LOG_OFF;
     if (command == "transfer") return TRANSFER;
+	if (command == "update_pin") return UPDATE_PIN;
+	if (command == "restore_attempts") return RESTORE_ATTEMPTS;
+	if (command == "get_all_info") return GET_ALL_INFO;
+	if (command == "get_id") return GET_ID;
     return UNKNOWN;
 }
 
-string hashPin(int &pin) {
+string hashPin(int& pin) {
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();
     if (!ctx) {
         cerr << "Error creating EVP context\n";
@@ -153,7 +161,7 @@ string hashPin(int &pin) {
     return ss.str();
 }
 
-bool isTaken(sqlite3* db, const string& name, int &id_) {
+bool isTaken(sqlite3* db, const string& name, int& id_) {
     sqlite3_stmt* stmt;
     int id = -1;
 
@@ -317,7 +325,7 @@ void updateNegativeStatus(sqlite3* db, int& id, bool negativeStatus) {
         return;
     }
 
-	cout << "Negative status updated successfully\n";
+    cout << "Negative status updated successfully\n";
     sqlite3_finalize(stmt);
     return;
 }
@@ -411,21 +419,21 @@ void updateAttemptsById(sqlite3* db, int id, int attempts) {
 
 bool checkWithdrawValid(double amount, bool isNegativeAllowed) {
     if (amount < 0 && !isNegativeAllowed) {
-		cout << "You can`t withdraw money, negative balance is not allowed\n";
+        cout << "You can`t withdraw money, negative balance is not allowed\n";
         return false;
     }
     if (amount < MAX_NEGATIVE_BALANCE) {
         cout << "You can`t withdraw that much money, maximum negative balance is " << MAX_NEGATIVE_BALANCE << "$\n";
         return false;
     }
-	return true;
+    return true;
 }
 
 bool checkDepositValid(double amount) {
-    if(amount > MAX_BALANCE) {
+    if (amount > MAX_BALANCE) {
         cout << "You can`t deposit that much money, maximum balance is " << MAX_BALANCE << "$\n";
         return false;
-	}
+    }
     return true;
 }
 
@@ -460,7 +468,7 @@ public:
         if (hashedPin.empty()) {
             cout << "Error hashing pin, please try again\n";
             return;
-		}
+        }
 
         sqlite3_stmt* stmt;
         const char* sql = "INSERT INTO Accounts (Name, Pin) VALUES (?, ?);";
@@ -503,11 +511,15 @@ public:
         string hashedPin = hashPin(pin);
 
         if (hashedPin != getPinById(db, id)) {
-			updateAttemptsById(db, id, getAttemptsById(db, id) + 1);
+            updateAttemptsById(db, id, getAttemptsById(db, id) + 1);
+			cout << "Wrong pin, please try again\n";
             return false;
         }
         updateAttemptsById(db, id, 0);
-		this->currentId = id;
+        this->currentId = id;
+        
+		cout << "*********************************\n";
+		cout << name << " welcome to the bank\n";
         return true;
     }
 
@@ -530,14 +542,14 @@ public:
                 break;
 
             case LOG_OFF:
-				cout << "You have logged off successfully\n";
+                cout << "You have logged off successfully\n";
                 return;
 
             case DEPOSIT:
                 tempD = getAmount("Please enter amount to deposit: ");
                 amount = getBalance(db, this->currentId) + tempD;
 
-				if (!checkDepositValid(amount)) { break; }
+                if (!checkDepositValid(amount)) { break; }
 
                 updateBalance(db, this->currentId, amount);
 
@@ -546,22 +558,22 @@ public:
 
             case WITHDRAW:
                 tempD = getAmount("Please enter amount to withdraw: ");
-				amount = getBalance(db, this->currentId) - tempD;
+                amount = getBalance(db, this->currentId) - tempD;
 
                 if (!checkWithdrawValid(amount, getNegativeStatus(db, this->currentId))) { break; }
 
                 updateBalance(db, this->currentId, amount);
 
-				cout << "You successfully withdrew " << tempD << "$\n";
+                cout << "You successfully withdrew " << tempD << "$\n";
                 break;
 
             case BALANCE:
-				cout << "Your current balance is: " << getBalance(db, this->currentId) << "$\n";
+                cout << "Your current balance is: " << getBalance(db, this->currentId) << "$\n";
                 break;
 
             case NEGATIVE_STATUS:
-                cout << "Your negative status is: " 
-					<< (getNegativeStatus(db, this->currentId) ? "Enabled" : "Disabled") << "\n";
+                cout << "Your negative status is: "
+                    << (getNegativeStatus(db, this->currentId) ? "Enabled" : "Disabled") << "\n";
                 break;
 
             case SET_NEGATIVE:
@@ -588,9 +600,9 @@ public:
                     break;
                 }
 
-				updatePin(db, this->currentId, temp);
+                updatePin(db, this->currentId, temp);
 
-				cout << "Pin updated successfully\n";
+                cout << "Pin updated successfully\n";
                 break;
 
             case TRANSFER:
@@ -604,30 +616,134 @@ public:
 
                 amount = getBalance(this->db, this->currentId) - tempD;
 
-                if(amount < 0 && !getNegativeStatus(this->db, this->currentId)) {
+                if (amount < 0 && !getNegativeStatus(this->db, this->currentId)) {
                     cout << "You can`t transfer money, negative balance is not allowed\n";
                     break;
-				}
+                }
 
-				if (amount < MAX_NEGATIVE_BALANCE) {
+                if (amount < MAX_NEGATIVE_BALANCE) {
                     cout << "You can`t transfer that much money, maximum negative balance is " << MAX_NEGATIVE_BALANCE << "$\n";
                     break;
-				}
+                }
 
                 updateBalance(this->db, this->currentId, amount);
 
-				amount = getBalance(this->db, tempI) + tempD;
+                amount = getBalance(this->db, tempI) + tempD;
 
                 if (amount > MAX_BALANCE) {
-					cout << "You can`t transfer that much money, maximum balance is " << MAX_BALANCE << "$\n";
+                    cout << "You can`t transfer that much money, maximum balance is " << MAX_BALANCE << "$\n";
                 }
 
-				updateBalance(this->db, tempI, amount);
-                
-				cout << "Transfer successful, you transferred " << tempD << "$ to " << targetName << "\n";
+                updateBalance(this->db, tempI, amount);
+
+                cout << "Transfer successful, you transferred " << tempD << "$ to " << targetName << "\n";
                 break;
 
             case UNKNOWN:
+                cout << "Unknown command, please try again\n";
+                break;
+            }
+        }
+    }
+
+    void runLoggedInSessionAdmin() {
+        string temp, targetName;
+        int id = -1, tempI;
+        while (true) {
+			cout << "Choose admin command: ";
+            cin >> temp;
+            temp = toLower(temp);
+
+            Command command = parseCommand(temp);
+
+            switch (command) {
+            case GET_ALL_INFO: {
+                sqlite3_stmt* stmt;
+                const char* sql = "SELECT ID, Name, Pin, Balance, Negative, Attempts FROM Accounts;";
+
+                if (sqlite3_prepare_v2(this->db, sql, -1, &stmt, nullptr) != SQLITE_OK) {
+                    cerr << "Failed to prepare statement: " << sqlite3_errmsg(this->db) << endl;
+                    break;
+                }
+
+                cout << "Accounts in database:\n";
+                cout << "***********************************************************\n";
+
+                while (sqlite3_step(stmt) == SQLITE_ROW) {
+                    int id = sqlite3_column_int(stmt, 0);
+                    string name = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+                    if (name == "ADMIN") continue;
+
+                    string pin = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+                    double balance = sqlite3_column_double(stmt, 3);
+                    bool negative = sqlite3_column_int(stmt, 4);
+                    int attempts = sqlite3_column_int(stmt, 5);
+
+                    if(name.empty()) {
+                        name = "N/A";
+					}
+
+                    cout << "ID: " << id;
+                    cout << "| Name: " << name;
+                    cout << "| Pin: " << pin;
+                    cout << "| Balance: " << balance << "$";
+                    cout << "| Negative: " << (negative ? "Enabled" : "Disabled");
+                    cout << "| Attempts: " << attempts << "\n";
+                    cout << "***********************************************************\n";
+                }
+
+                sqlite3_finalize(stmt);
+
+                break;
+            }
+
+            case GET_ID:
+                cout << "Give me name of the account: ";
+                cin >> targetName;
+
+                if (targetName == "ADMIN") {
+                    cout << "You can`t get ID of ADMIN account\n";
+                    break;
+				}
+
+                if (!isTaken(this->db, targetName, id)) {
+                    cout << "This account does not exist, please try again\n";
+                    break;
+                }
+                cout << "ID of the account " << targetName << " is: " << id << "\n";
+                break;
+
+            case UPDATE_PIN:
+                if (id == -1) {
+                    cout << "You need to get ID first\n";
+                    break;
+                }
+                temp = getMaskedPin("Please enter new pin (0-9999): ");
+                if (temp == "-1") {
+                    cout << "You need to enter a valid pin\n";
+                    break;
+                }
+                tempI = stoi(temp);
+                temp = hashPin(tempI);
+                updatePin(this->db, id, temp);
+
+                cout << "Pin updated successfully\n";
+                break;
+
+            case RESTORE_ATTEMPTS:
+                if (id == -1) {
+                    cout << "You need to get ID first\n";
+                    break;
+                }
+                updateAttemptsById(this->db, id, 0);
+                cout << "Attempts restored successfully\n";
+                break;
+
+            case LOG_OFF:
+                cout << "You have logged off successfully\n";
+                return;
+
+            default:
                 cout << "Unknown command, please try again\n";
                 break;
             }
@@ -657,7 +773,12 @@ void loginAccount(Bank& bank) {
     tpin = stoi(spin);
 
     if (bank.loginSession(tname, tpin)) {
-        bank.runLoggedInSession();
+        if (tname == "ADMIN") {
+            bank.runLoggedInSessionAdmin();
+        }
+        else {
+            bank.runLoggedInSession();
+        }
     }
 }
 
