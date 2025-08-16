@@ -37,14 +37,14 @@ CREATE TABLE Accounts (
 # Clone the repository
 - git clone https://github.com/your-username/BankAccountManager-CPP.git
 
-# Install dependencies
+### Install dependencies
 - SQLite3
 - OpenSSL
 
-# Compile with:
+### Compile with:
 - `g++ -std=c++17 main.cpp -lsqlite3 -lssl -lcrypto -o BankManager`
 
-# Run: 
+### Run: 
 - `./BankManager`
 
 ## Usage
